@@ -1,0 +1,55 @@
+{
+    "groups": [
+        {
+            "title": "工具函数",
+            "pages": [
+                {
+                    "title": "日期工具",
+                    "source": "./src/utils/date.ts"
+                },
+                {
+                    "title": "格式化工具",
+                    "source": "./src/utils/format.ts"
+                },
+                {
+                    "title": "HTTP工具",
+                    "source": "./src/utils/http.ts"
+                },
+                {
+                    "title": "图片工具",
+                    "source": "./src/utils/images.ts"
+                },
+                {
+                    "title": "定时器工具",
+                    "source": "./src/utils/timer.ts"
+                }
+            ]
+        },
+        {
+            "title": "地图工具",
+            "pages": [
+                {
+                    "title": "坐标转换",
+                    "source": "./src/map/coordTransform.ts"
+                },
+                {
+                    "title": "坐标工具",
+                    "source": "./src/map/coordinates.ts"
+                },
+                {
+                    "title": "距离计算",
+                    "source": "./src/map/distance.ts"
+                },
+                {
+                    "title": "数学工具",
+                    "source": "./src/map/mathUtils.ts"
+                },
+                {
+                    "title": "点生成器",
+                    "source": "./src/map/pointGeneration.ts"
+                }
+            ]
+        }
+    ],
+    "output": "pages"
+}
