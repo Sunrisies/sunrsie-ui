@@ -7,7 +7,7 @@ import { ensureEnvironment } from "../common/env";
  * @param url - 文件下载地址（需符合 URL 规范）
  * @param filename - 保存时使用的文件名（需包含扩展名）
  * @memberof module:browser/http
- * @function 下载文件
+ * @func 下载文件
  * @example
  * ```typescript
  * // 下载图片文件
@@ -76,7 +76,7 @@ export interface ApiResponse<T> {
  * 封装了常见的 HTTP 请求方法，支持自动拼接基础 URL 和请求配置
  * @memberof module:browser/http
  * @name 可配置的 HTTP 客户端实例
- * @function 可配置的 HTTP 客户端实例
+ * @func 可配置的 HTTP 客户端实例
  * @param baseURL - 基础 URL 路径，会自动拼接到所有请求端点前
  *
  * @example
@@ -312,7 +312,7 @@ export class Http {
  * 将请求参数对象转换为 URL 查询字符串
  * @public
  * @memberof module:browser/http
- * @function 将请求参数对象转换为 URL 查询字符串。
+ * @func 将请求参数对象转换为 URL 查询字符串。
  * @remarks
  * 支持数组和基本类型处理，自动进行 URI 组件编码。注意嵌套对象会被转换为字符串形式（如 [object Object]），
  * 建议使用扁平数据结构。本实现基于 URLSearchParams 标准 API，与 `qs` 等库的嵌套处理机制不同

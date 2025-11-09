@@ -13,10 +13,11 @@
     // "typedoc-vitepress-theme",
     // "./custom-plugin.js"
   ],
-  "vitepressOutput": "./api",
+  "vitepressOutput": "./docs",
   "vitepressTitle": "sunrise-utils 的工具函数",
   "vitepressDescription": "Complete API reference for My UI Library",
   "lang": "zh",
+  "out": "./api",
   // "out": "./api"
   // "sidebar": {
   //   "autoConfiguration": true,

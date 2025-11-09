@@ -5,55 +5,51 @@ import {
   DeclarationReflection,
 } from "typedoc";
 import { VitePressOptions, ModuleInfo } from "./types";
-
+import { CommentParser } from "./CommentParser";
+// 建立一个映射 browser 对应的是浏览器，util对应的是工具, common对应的是通用
+const kindMap: Record<string, string> = {
+  browser: "浏览器",
+  util: "工具",
+  common: "通用",
+};
 export class SidebarGenerator {
+  /**
+   * 提取模块信息（支持类和函数）
+   */
+  private static getModule(
+    reflection: DeclarationReflection,
+    name?: string
+  ): string | null {
+    return CommentParser.getModule(reflection, name);
+  }
   static generate(project: ProjectReflection, options: VitePressOptions): any {
     const modules: Record<string, ModuleInfo> = {};
 
     if (project.children) {
       // 首先按模块分组
       for (const reflection of project.children) {
-        const moduleName = this.getModule(reflection) || "Global";
-        const itemDescription = this.getItemDescription(reflection);
-
+        const moduleName =
+          this.getModule(reflection)?.split("/")[0] || "Global";
+        const itemDescription = this.getModule(reflection, "@func");
         if (!modules[moduleName]) {
           modules[moduleName] = {
-            name: moduleName,
+            name: kindMap[moduleName] || moduleName,
             description: this.getModuleDescription(moduleName),
             items: [],
           };
         }
 
         modules[moduleName].items.push({
-          name: reflection.name,
-          description: itemDescription,
+          name: kindMap[reflection.kind] || reflection.name,
+          description: itemDescription!,
           link: this.getLink(reflection, options),
           kind: ReflectionKind[reflection.kind],
         });
       }
     }
-
+    console.log(JSON.stringify(modules, null, 2), "modules");
     // 转换为 VitePress 侧边栏格式
     return this.convertToVitePressSidebar(modules, options);
-  }
-
-  /**
-   * 提取模块信息
-   */
-  private static getModule(reflection: DeclarationReflection): string | null {
-    const memberofTag = reflection.comment?.tags?.find(
-      (tag) => tag.tagName === "memberof"
-    );
-
-    if (memberofTag) {
-      const moduleMatch = memberofTag.text.match(/module:([^\s]+)/);
-      if (moduleMatch) {
-        return moduleMatch[1];
-      }
-      return memberofTag.text.trim();
-    }
-
-    return null;
   }
 
   /**
@@ -72,40 +68,6 @@ export class SidebarGenerator {
   }
 
   /**
-   * 获取项目描述
-   */
-  private static getItemDescription(reflection: DeclarationReflection): string {
-    // 优先使用 @function 标签
-    const functionTag = reflection.comment?.tags?.find(
-      (tag) => tag.tagName === "function"
-    );
-
-    if (functionTag) {
-      return functionTag.text.trim().replace(/。$/, "");
-    }
-
-    // 使用注释的简短描述
-    if (reflection.comment?.shortText) {
-      return reflection.comment.shortText;
-    }
-
-    // 检查函数签名中的注释
-    if (
-      reflection.type?.type === "reflection" &&
-      reflection.type.declaration?.signatures
-    ) {
-      const signature = reflection.type.declaration.signatures[0];
-      if (signature.comment?.shortText) {
-        return signature.comment.shortText;
-      }
-    }
-
-    // 默认描述
-    const kindName = ReflectionKind[reflection.kind].toLowerCase();
-    return `${reflection.name} ${kindName}`;
-  }
-
-  /**
    * 转换为 VitePress 侧边栏格式
    */
   private static convertToVitePressSidebar(
@@ -116,15 +78,15 @@ export class SidebarGenerator {
 
     // 按模块名称排序
     const sortedModuleNames = Object.keys(modules).sort();
-
+    // console.log(sortedModuleNames, "sortedModuleNames");
     for (const moduleName of sortedModuleNames) {
       const module = modules[moduleName];
 
       // 对模块内的项目按名称排序
       module.items.sort((a, b) => a.name.localeCompare(b.name));
-
+      // console.log(module, "module");
       sidebarItems.push({
-        text: module.name,
+        text: module.name.split("/")[0],
         collapsible: true,
         collapsed: false,
         items: module.items.map((item) => ({
@@ -133,18 +95,15 @@ export class SidebarGenerator {
         })),
       });
     }
-
-    return {
-      "/api/": sidebarItems,
-    };
+    // console.log(sidebarItems, "1-1-1-1-1-1-");
+    return sidebarItems;
   }
 
   private static getLink(
     reflection: DeclarationReflection,
     options: VitePressOptions
   ): string {
-    const kind = ReflectionKind[reflection.kind].toLowerCase();
     const name = reflection.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    return `/api/${kind}-${name}`;
+    return `/docs/${name}`;
   }
 }

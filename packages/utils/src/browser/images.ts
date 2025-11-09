@@ -5,7 +5,7 @@
  * @param imageUrls - 图片资源的URL数组
  * @returns 返回一个Promise，该Promise在所有图片加载完成后解析为一个包含HTMLImageElement对象的数组
  * @memberof module:browser/images
- * @function 预加载并缓存一组图片资源。
+ * @func 预加载并缓存一组图片资源。
  * @example
  * ```typescript
  * // 示例：预加载并缓存一组图片
@@ -38,7 +38,7 @@ export const preloadAndCacheImages = (
  * 预加载并缓存图片资源。
  * @public
  * @memberof module:browser/images
- * @function 预加载并缓存图片资源
+ * @func 预加载并缓存图片资源
  * @param imageUrl - 图片资源的URL
  * @returns 返回一个Promise，该Promise在图片加载完成后解析为一个包含HTMLImageElement对象
  *

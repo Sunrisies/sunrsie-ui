@@ -4,8 +4,10 @@
  *
  * @param elementId - 要获取尺寸的元素的ID
  * @returns 返回一个包含width和height的对象，如果找不到元素或无法获取计算样式则返回错误对象
- * @memberof module:utils/dom
- * @function 获取指定元素ID的内容区域
+ * @memberof module:browser/dom
+ *
+ * @func 获取指定元素ID的内容区域
+ *
  * @example
  * ```typescript
  * // 获取ID为 'myElement' 的元素的内容区域尺寸

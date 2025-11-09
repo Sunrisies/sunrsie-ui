@@ -19,20 +19,34 @@ export class VitePressRenderer {
 
   constructor(typedocOptions: Options) {
     this.outputDir =
-      typedocOptions.getValue("vitepressOutput") || "./docs/.vitepress/api";
+      (typedocOptions.getValue("vitepressOutput") as string) ||
+      "./docs/.vitepress/api";
     this.options = {
       outputDir: this.outputDir,
-      baseUrl: typedocOptions.getValue("vitepressBaseUrl") || "/",
-      title: typedocOptions.getValue("vitepressTitle") || "API Documentation",
+      baseUrl: (typedocOptions.getValue("vitepressBaseUrl") as string) || "/",
+      title:
+        (typedocOptions.getValue("vitepressTitle") as string) ||
+        "API Documentation",
       description:
-        typedocOptions.getValue("vitepressDescription") ||
+        (typedocOptions.getValue("vitepressDescription") as string) ||
         "Auto-generated API documentation",
       frontmatter: {},
     };
-    this.ensureOutputDir();
+    this.clearOutputDir();
   }
 
+  private clearOutputDir(): void {
+    if (fs.existsSync(this.outputDir)) {
+      console.log("删除输出目录的内容", this.outputDir);
+      fs.rmSync(this.outputDir, { recursive: true });
+    }
+    // 确保输出目录存在
+    fs.mkdirSync(this.outputDir, { recursive: true });
+  }
   public renderProject(project: ProjectReflection): void {
+    console.log("开始进行解析");
+    // 删除输出目录的内容
+    this.clearOutputDir();
     // 渲染所有反射项
     if (project.children) {
       project.children.forEach((reflection) => {
@@ -41,13 +55,10 @@ export class VitePressRenderer {
     }
 
     // // 生成索引页
-    // this.generateIndex(project);
+    this.generateIndex(project);
 
-    // // 生成侧边栏配置
-    // this.generateSidebarConfig(project);
-
-    // // 生成 VitePress 配置文件
-    // this.generateVitePressConfig(project);
+    // 生成侧边栏配置
+    this.generateSidebarConfig(project);
   }
 
   private renderReflection(reflection: DeclarationReflection): void {
@@ -535,49 +546,6 @@ export class VitePressRenderer {
       .join(", ");
   }
 
-  private renderType(type: any): string {
-    if (!type) return "any";
-
-    switch (type.type) {
-      case "intrinsic":
-        return type.name;
-      case "reference":
-        return (
-          type.name +
-          (type.typeArguments
-            ? `<${type.typeArguments
-                .map((arg: any) => this.renderType(arg))
-                .join(", ")}>`
-            : "")
-        );
-      case "array":
-        return `${this.renderType(type.elementType)}[]`;
-      case "union":
-        return type.types.map((t: any) => this.renderType(t)).join(" | ");
-      case "intersection":
-        return type.types.map((t: any) => this.renderType(t)).join(" & ");
-      case "literal":
-        return typeof type.value === "string" ? `"${type.value}"` : type.value;
-      case "reflection":
-        if (type.declaration && type.declaration.children) {
-          const props = type.declaration.children
-            .map(
-              (child: any) =>
-                `${child.name}${
-                  child.flags?.isOptional ? "?" : ""
-                }: ${this.renderType(child.type)}`
-            )
-            .join("; ");
-          return `{ ${props} }`;
-        }
-        return "object";
-      case "typeOperator":
-        return `${type.operator} ${this.renderType(type.target)}`;
-      default:
-        return type.name || "any";
-    }
-  }
-
   // 在 renderType 方法中添加对函数类型的支持
   private renderType(type: any): string {
     if (!type) return "any";
@@ -640,9 +608,8 @@ export class VitePressRenderer {
   }
 
   private getFilename(reflection: DeclarationReflection): string {
-    const kind = ReflectionKind[reflection.kind].toLowerCase();
     const name = reflection.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    return `${kind}-${name}.md`;
+    return `${name}.md`;
   }
 
   // 在 VitePressRenderer.ts 中修改 generateIndex 方法
@@ -702,31 +669,352 @@ export class VitePressRenderer {
 
   private generateSidebarConfig(project: ProjectReflection): void {
     const sidebar = SidebarGenerator.generate(project, this.options);
-    const configPath = path.join(this.outputDir, "sidebar.json");
+    const configPath = path.join(
+      this.outputDir,
+      "..",
+      ".vitepress",
+      "sidebar.json"
+    );
 
     fs.writeFileSync(configPath, JSON.stringify(sidebar, null, 2), "utf8");
   }
 
-  private generateVitePressConfig(project: ProjectReflection): void {
-    const config = {
-      title: this.options.title,
-      description: this.options.description,
-      themeConfig: {
-        nav: [
-          { text: "API", link: "/api/" },
-          { text: "Guide", link: "/guide/" },
-        ],
-        sidebar: JSON.parse(
-          fs.readFileSync(path.join(this.outputDir, "sidebar.json"), "utf8")
-        ),
-      },
+  /**
+   * 将嵌套的侧边栏结构转换为扁平化结构
+   */
+  private convertToFlatSidebar(sidebarData: any): any[] {
+    const flatSidebar: any[] = [];
+
+    // 遍历每个路径的侧边栏配置
+    for (const [path, sidebarGroups] of Object.entries(sidebarData)) {
+      if (Array.isArray(sidebarGroups)) {
+        sidebarGroups.forEach((group) => {
+          // 将每个组转换为扁平化结构
+          const flatGroup = this.flattenSidebarGroup(group, path);
+          if (flatGroup) {
+            flatSidebar.push(flatGroup);
+          }
+        });
+      }
+    }
+
+    return flatSidebar;
+  }
+  /**
+   * 扁平化侧边栏组
+   */
+  private flattenSidebarGroup(group: any, basePath: string): any {
+    if (!group.items || !Array.isArray(group.items)) {
+      return null;
+    }
+
+    // 处理嵌套的 items
+    const flatItems: any[] = [];
+
+    group.items.forEach((item: any) => {
+      if (item.items && Array.isArray(item.items)) {
+        // 如果 item 还有嵌套的 items，递归处理
+        item.items.forEach((nestedItem: any) => {
+          flatItems.push({
+            text: nestedItem.text,
+            link: this.ensureAbsoluteLink(nestedItem.link, basePath),
+          });
+        });
+      } else {
+        // 直接添加普通 item
+        flatItems.push({
+          text: item.text,
+          link: this.ensureAbsoluteLink(item.link, basePath),
+        });
+      }
+    });
+
+    return {
+      text: group.text,
+      collapsible: group.collapsible !== undefined ? group.collapsible : true,
+      collapsed: group.collapsed !== undefined ? group.collapsed : false,
+      items: flatItems,
     };
+  }
+  /**
+   * 确保链接是绝对路径
+   */
+  private ensureAbsoluteLink(link: string, basePath: string): string {
+    if (!link) return link;
+
+    // 如果链接不是以 / 开头，添加基础路径
+    if (!link.startsWith("/")) {
+      return `${basePath}${link}`;
+    }
+
+    return link;
+  }
+
+  /**
+   * 生成侧边栏 Markdown 文件
+   */
+  private generateSidebarMarkdown(project: ProjectReflection): void {
+    if (!project.children) return;
+
+    const lines: string[] = [];
+
+    lines.push("- [API 概览](../api/)");
+    lines.push("");
+
+    // 按模块分组
+    const modules: Record<string, DeclarationReflection[]> = {};
+
+    for (const reflection of project.children) {
+      const module = this.getModule(reflection) || "Global";
+      if (!modules[module]) {
+        modules[module] = [];
+      }
+      modules[module].push(reflection);
+    }
+
+    // 按模块名称排序
+    const sortedModuleNames = Object.keys(modules).sort();
+
+    for (const moduleName of sortedModuleNames) {
+      const moduleReflections = modules[moduleName];
+      const moduleSlug = moduleName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+      lines.push(`- **${moduleName}**`);
+      lines.push(`  - [模块概览](../api/modules/${moduleSlug})`);
+
+      // 按名称排序
+      moduleReflections.sort((a, b) => a.name.localeCompare(b.name));
+
+      moduleReflections.forEach((reflection) => {
+        const functionDescription = this.getFunctionDescription(reflection);
+        const displayText = functionDescription || reflection.name;
+        const link = `../api/${this.getFilename(reflection).replace(
+          ".md",
+          ""
+        )}`;
+
+        lines.push(`  - [${reflection.name}](${link})`);
+      });
+
+      lines.push("");
+    }
+
+    const sidebarDir = path.join(this.outputDir, "..", ".vitepress");
+    if (!fs.existsSync(sidebarDir)) {
+      fs.mkdirSync(sidebarDir, { recursive: true });
+    }
 
     fs.writeFileSync(
-      path.join(this.outputDir, "..", "config.js"),
-      `export default ${JSON.stringify(config, null, 2)}`,
+      path.join(sidebarDir, "sidebar-api.md"),
+      lines.join("\n"),
       "utf8"
     );
+  }
+
+  /**
+   * 生成导航文件
+   */
+  private generateNavFile(project: ProjectReflection): void {
+    const lines: string[] = [];
+
+    lines.push("---");
+    lines.push("title: API 参考");
+    lines.push("description: 完整的 API 文档");
+    lines.push("sidebar: false");
+    lines.push("---");
+    lines.push("");
+    lines.push("# API 参考");
+    lines.push("");
+    lines.push("欢迎使用 API 文档。此参考包含所有导出成员的详细信息。");
+    lines.push("");
+
+    if (project.children) {
+      // 按模块分组
+      const modules: Record<string, DeclarationReflection[]> = {};
+
+      for (const reflection of project.children) {
+        const module = this.getModule(reflection) || "Global";
+        if (!modules[module]) {
+          modules[module] = [];
+        }
+        modules[module].push(reflection);
+      }
+
+      // 按模块名称排序
+      const sortedModuleNames = Object.keys(modules).sort();
+
+      for (const moduleName of sortedModuleNames) {
+        const moduleReflections = modules[moduleName];
+
+        lines.push(`## ${moduleName}`);
+        lines.push("");
+        lines.push(`> ${this.getModuleDescription(moduleName)}`);
+        lines.push("");
+
+        // 按名称排序
+        moduleReflections.sort((a, b) => a.name.localeCompare(b.name));
+
+        lines.push("| 名称 | 描述 | 类型 |");
+        lines.push("|------|------|------|");
+
+        moduleReflections.forEach((reflection) => {
+          const functionDescription = this.getFunctionDescription(reflection);
+          const displayText =
+            functionDescription || this.getShortDescription(reflection);
+          const kind = ReflectionKind[reflection.kind];
+          const link = this.getFilename(reflection).replace(".md", "");
+          const kindBadge = this.getKindBadge(kind);
+
+          lines.push(
+            `| [${reflection.name}](${link}) | ${displayText} | ${kindBadge} |`
+          );
+        });
+        lines.push("");
+      }
+    }
+
+    fs.writeFileSync(
+      path.join(this.outputDir, "index.md"),
+      lines.join("\n"),
+      "utf8"
+    );
+  }
+  /**
+   * 为每个模块生成索引文件
+   */
+  private generateModuleIndexFiles(project: ProjectReflection): void {
+    if (!project.children) return;
+
+    // 按模块分组
+    const modules: Record<string, DeclarationReflection[]> = {};
+
+    for (const reflection of project.children) {
+      const module = this.getModule(reflection) || "Global";
+      if (!modules[module]) {
+        modules[module] = [];
+      }
+      modules[module].push(reflection);
+    }
+
+    // 为每个模块生成单独的索引文件
+    for (const [moduleName, reflections] of Object.entries(modules)) {
+      this.generateSingleModuleIndex(moduleName, reflections);
+    }
+  }
+
+  /**
+   * 生成单个模块的索引文件
+   */
+  private generateSingleModuleIndex(
+    moduleName: string,
+    reflections: DeclarationReflection[]
+  ): void {
+    const lines: string[] = [];
+
+    const moduleDir = path.join(this.outputDir, "modules");
+    if (!fs.existsSync(moduleDir)) {
+      fs.mkdirSync(moduleDir, { recursive: true });
+    }
+
+    const moduleSlug = moduleName.toLowerCase().replace(/[^a-z0-9]/g, "-");
+
+    lines.push("---");
+    lines.push(`title: "${moduleName} 模块"`);
+    lines.push(`description: "${this.getModuleDescription(moduleName)}"`);
+    lines.push("---");
+    lines.push("");
+    lines.push(`# ${moduleName} 模块`);
+    lines.push("");
+    lines.push(this.getModuleDescription(moduleName));
+    lines.push("");
+
+    // 按类型分组
+    const groups = this.groupByKind(reflections);
+
+    for (const [kind, kindReflections] of Object.entries(groups)) {
+      if (kindReflections.length > 0) {
+        lines.push(`## ${this.getKindDisplayName(kind)}`);
+        lines.push("");
+
+        kindReflections.sort((a, b) => a.name.localeCompare(b.name));
+
+        lines.push("| 名称 | 描述 |");
+        lines.push("|------|------|");
+
+        kindReflections.forEach((reflection) => {
+          const functionDescription = this.getFunctionDescription(reflection);
+          const displayText =
+            functionDescription || this.getShortDescription(reflection);
+          const link = `../${this.getFilename(reflection).replace(".md", "")}`;
+
+          lines.push(`| [${reflection.name}](${link}) | ${displayText} |`);
+        });
+        lines.push("");
+      }
+    }
+
+    fs.writeFileSync(
+      path.join(moduleDir, `${moduleSlug}.md`),
+      lines.join("\n"),
+      "utf8"
+    );
+  }
+
+  /**
+   * 获取模块描述
+   */
+  private getModuleDescription(moduleName: string): string {
+    const moduleDescriptions: Record<string, string> = {
+      "browser/http": "浏览器 HTTP 请求工具集，提供文件下载和 HTTP 客户端功能",
+      browser: "浏览器相关工具函数",
+      common: "通用工具函数和工具类",
+      utils: "工具函数集合",
+      Global: "全局函数和工具",
+    };
+
+    return (
+      moduleDescriptions[moduleName] ||
+      `${moduleName} 模块包含相关的 API 函数和类`
+    );
+  }
+
+  /**
+   * 获取简短的描述
+   */
+  private getShortDescription(reflection: DeclarationReflection): string {
+    if (reflection.comment?.shortText) {
+      return reflection.comment.shortText;
+    }
+
+    if (reflection.signatures?.[0]?.comment?.shortText) {
+      return reflection.signatures[0].comment.shortText;
+    }
+
+    if (
+      reflection.type?.type === "reflection" &&
+      reflection.type.declaration?.signatures?.[0]?.comment?.shortText
+    ) {
+      return reflection.type.declaration.signatures[0].comment.shortText;
+    }
+
+    return "暂无描述";
+  }
+
+  /**
+   * 获取类型徽章
+   */
+  private getKindBadge(kind: string): string {
+    const badgeColors: Record<string, string> = {
+      Class: "blue",
+      Interface: "green",
+      Function: "purple",
+      Variable: "yellow",
+      TypeAlias: "gray",
+      Enum: "orange",
+    };
+
+    const color = badgeColors[kind] || "gray";
+    return `<Badge type="tip" text="${kind}" color="${color}" />`;
   }
 
   private groupByKind(
@@ -757,11 +1045,5 @@ export class VitePressRenderer {
     };
 
     return displayNames[kind] || `${kind}s`;
-  }
-
-  private ensureOutputDir(): void {
-    if (!fs.existsSync(this.outputDir)) {
-      fs.mkdirSync(this.outputDir, { recursive: true });
-    }
   }
 }
