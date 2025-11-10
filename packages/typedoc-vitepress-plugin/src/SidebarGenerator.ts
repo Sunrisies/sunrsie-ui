@@ -38,7 +38,13 @@ export class SidebarGenerator {
             items: [],
           };
         }
-
+        console.log(
+          kindMap[reflection.kind],
+          "kindMap",
+          reflection.name,
+          "---------------------------",
+          JSON.stringify(reflection)
+        );
         modules[moduleName].items.push({
           name: kindMap[reflection.kind] || reflection.name,
           description: itemDescription!,
@@ -90,7 +96,7 @@ export class SidebarGenerator {
         collapsible: true,
         collapsed: false,
         items: module.items.map((item) => ({
-          text: item.description, // 使用函数描述作为显示文本
+          text: item.description || item.name, // 使用函数描述作为显示文本
           link: item.link,
         })),
       });
