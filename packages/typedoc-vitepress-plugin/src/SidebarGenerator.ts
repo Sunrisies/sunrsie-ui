@@ -30,6 +30,8 @@ export class SidebarGenerator {
       for (const reflection of project.children) {
         const moduleName =
           this.getModule(reflection)?.split("/")[0] || "Global";
+        const aa = this.getModule(reflection);
+        console.log(aa, "this.getModule(reflection)");
         const itemDescription = this.getModule(reflection, "@func");
         if (!modules[moduleName]) {
           modules[moduleName] = {
@@ -38,22 +40,17 @@ export class SidebarGenerator {
             items: [],
           };
         }
-        console.log(
-          kindMap[reflection.kind],
-          "kindMap",
-          reflection.name,
-          "---------------------------",
-          JSON.stringify(reflection)
-        );
-        modules[moduleName].items.push({
-          name: kindMap[reflection.kind] || reflection.name,
-          description: itemDescription!,
-          link: this.getLink(reflection, options),
-          kind: ReflectionKind[reflection.kind],
-        });
+
+        if (reflection.kind !== ReflectionKind.Interface) {
+          modules[moduleName].items.push({
+            name: kindMap[reflection.kind] || reflection.name,
+            description: itemDescription!,
+            link: this.getLink(reflection, options),
+            kind: ReflectionKind[reflection.kind],
+          });
+        }
       }
     }
-    console.log(JSON.stringify(modules, null, 2), "modules");
     // 转换为 VitePress 侧边栏格式
     return this.convertToVitePressSidebar(modules, options);
   }

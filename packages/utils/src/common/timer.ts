@@ -3,7 +3,7 @@
  * @description 定义时间更新器返回的数据结构
  * @public
  * @func 时间更新数据类型
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 包含格式化后的日期、星期和当前时间信息
@@ -47,7 +47,7 @@ export interface UpTimeType {
  * 日期时间格式化工具类
  * @public
  * @func 日期时间格式化
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 提供标准日期格式、星期计算、时间格式化等功能，所有方法均为纯函数。
@@ -68,7 +68,7 @@ export class TimeFormatter {
    * 生成符合 ISO 8601 的短日期格式字符串
    * @public
    * @func 格式化日期
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @param date - 需要格式化的日期对象（支持 Date 实例或时间戳）
    * @returns 标准化日期字符串（YYYY-MM-DD）
@@ -95,7 +95,7 @@ export class TimeFormatter {
    * 获取中文星期名称
    * @public
    * @func 获取星期
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @param date - 日期对象（注意：周日对应索引 0）
    * @returns 中文星期字符串（"星期一" 至 "星期日"）
@@ -127,7 +127,7 @@ export class TimeFormatter {
    * 生成标准化时间字符串
    * @public
    * @func 格式化时间
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @param date - 需要格式化的时间对象（支持 Date 实例或时间戳）
    * @returns 24 小时制时间字符串（HH:mm:ss）
@@ -153,7 +153,7 @@ export class TimeFormatter {
  * 时间更新管理器
  * @public
  * @func 时间更新管理
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 提供自动更新时间数据的能力，通过回调函数传递格式化后的时间信息。
@@ -180,7 +180,7 @@ export class TimeUpdater {
    * 初始化时间更新管理器实例
    * @public
    * @func 初始化时间更新器
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @remarks
    * 内部自动创建 Timer 和 TimeFormatter 实例
@@ -205,7 +205,7 @@ export class TimeUpdater {
    * 执行时间数据更新流程
    * @private
    * @func 更新时间数据
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @remarks
    * 本方法通过时间格式化工具获取当前日期、星期和时间的格式化字符串
@@ -236,7 +236,7 @@ export class TimeUpdater {
    * 开始定期更新时间
    * @public
    * @func 启动时间更新
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @param callback - 回调函数，接收一个包含 formattedDate, today, nowTime 的对象
    */
@@ -249,7 +249,7 @@ export class TimeUpdater {
    * 停止定期更新时间
    * @public
    * @func 停止时间更新
-   * @memberof module:utils/time
+   * @memberof module:common/time
    */
   public stopUpdate(): void {
     this.timer.stop();
@@ -260,7 +260,7 @@ export class TimeUpdater {
  * 定时器控制器
  * @public
  * @func 定时器控制
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 提供定时任务管理能力，支持设置任意间隔时间的周期性回调。
@@ -286,7 +286,7 @@ export class Timer {
    * 启动定时任务
    * @public
    * @func 启动定时器
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @remarks
    * 该方法会创建周期性定时器，重复执行回调函数直到主动停止
@@ -311,7 +311,7 @@ export class Timer {
    * 停止定时任务并释放资源
    * @public
    * @func 停止定时器
-   * @memberof module:utils/time
+   * @memberof module:common/time
    *
    * @remarks
    * 安全终止当前活动的定时器，清除内部定时器引用
@@ -338,7 +338,7 @@ export class Timer {
  * 将时间值格式化为中文长日期时间字符串
  * @public
  * @func 格式化中文日期时间
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 支持 Date 实例和 ISO 格式字符串解析，自动处理时区转换
@@ -372,7 +372,7 @@ export const formatChineseDateTime = (date: Date | string): string => {
  * 时间戳转换为日期字符串
  * @public
  * @func 转换时间戳
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @param time - 时间戳（单位：秒）
  * @returns 格式化的日期字符串，格式为 'YYYY年MM月DD日HH时MM分'
@@ -398,7 +398,7 @@ export const conversionTime = (time: number): string => {
  * 将秒数转换为易读的时长字符串
  * @public
  * @func 转换时长
- * @memberof module:utils/time
+ * @memberof module:common/time
  *
  * @remarks
  * 支持从秒到天的单位转换，自动选择最合适的单位组合

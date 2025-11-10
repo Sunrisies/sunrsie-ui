@@ -60,6 +60,105 @@ export interface ActivityMonitorOptions {
    */
   resumeOnFocus?: boolean;
 }
+/**
+ * 活动监控器控制接口
+ * @description 定义活动监控器实例提供的所有控制方法和状态访问接口
+ * @public
+ * @func 活动监控器控制接口
+ * @memberof module:common/activity
+ *
+ * @remarks
+ * 此接口定义了活动监控器的完整控制API，包括：
+ * - 状态管理方法：启动、停止、暂停、恢复
+ * - 状态查询方法：获取当前监控状态
+ * - 活动检测方法：手动触发活动检查
+ */
+export interface ActivityMonitorController {
+  /**
+   * 检查并更新活动状态
+   * @description 重置计时器，更新最后活动时间，并触发相应的回调函数
+   * @remarks
+   * - 如果是首次活动，会触发onStart回调
+   * - 每次活动都会触发onActivity回调
+   * - 设置新的超时计时器，超时后触发onTimeout回调
+   *
+   * @example
+   * ```typescript
+   * // 手动触发活动检查
+   * monitor.check();
+   * ```
+   */
+  check(): void;
+
+  /**
+   * 启动监控器
+   * @description 开始监控用户活动
+   * @remarks 仅在监控器未活动时才会启动
+   *
+   * @example
+   * ```typescript
+   * // 启动监控
+   * monitor.start();
+   * ```
+   */
+  start(): void;
+
+  /**
+   * 停止监控器
+   * @description 完全停止监控，清除计时器并重置所有状态
+   * @remarks
+   * - 清除当前计时器
+   * - 如果处于活动状态，触发onStop回调
+   * - 重置活动状态和开始时间
+   *
+   * @example
+   * ```typescript
+   * // 停止监控
+   * monitor.stop();
+   * ```
+   */
+  stop(): void;
+
+  /**
+   * 暂停监控器
+   * @description 暂时停止监控，但保持活动状态
+   * @remarks 仅清除计时器，不改变活动状态，可以通过resume恢复
+   *
+   * @example
+   * ```typescript
+   * // 暂停监控
+   * monitor.pause();
+   * ```
+   */
+  pause(): void;
+
+  /**
+   * 恢复监控器
+   * @description 恢复被暂停的监控
+   * @remarks 仅在监控器处于活动状态时才会恢复
+   *
+   * @example
+   * ```typescript
+   * // 恢复监控
+   * monitor.resume();
+   * ```
+   */
+  resume(): void;
+
+  /**
+   * 获取当前监控器状态
+   * @description 返回包含当前活动状态、剩余时间和已运行时间的对象
+   * @returns {ActivityMonitorState} 监控器当前状态对象
+   *
+   * @example
+   * ```typescript
+   * const state = monitor.getState();
+   * console.log(state.isActive); // 是否处于活动状态
+   * console.log(state.remainingTime); // 剩余时间（毫秒）
+   * ```
+   */
+  getState(): ActivityMonitorState;
+}
 
 /**
  * 活动监控器状态接口
@@ -120,7 +219,9 @@ export interface ActivityMonitorState {
  * monitor.stop();
  * ```
  */
-export function createActivityMonitor(options: ActivityMonitorOptions) {
+export function createActivityMonitor(
+  options: ActivityMonitorOptions
+): ActivityMonitorController {
   let timer: number | null = null;
   let isActive = false;
   let startTime = 0;

@@ -3,7 +3,7 @@
  * @description 根据输入参数的类型和值生成随机字符串或返回错误
  * @public
  * @func 生成随机字符串
- * @memberof module:utils/string
+ * @memberof module:common/string
  *
  * @typeParam T - 输入参数的类型，用于类型推导
  *
@@ -60,7 +60,7 @@ const CHARACTERS =
 /**
  * 生成随机字符串的主函数
  * @func 生成随机字符串
- * @memberof module:utils/string
+ * @memberof module:common/string
  * @param length 字符串长度
  * @returns 随机字符串或错误对象
  */

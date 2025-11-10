@@ -4,7 +4,7 @@
  * @remarks
  * 支持自定义时间参考点、语言设置和文案显示
  *
- * @memberof module:browser/date
+ * @memberof module:common/date
  *
  * @func 相对时间描述工具
  * @example
@@ -127,7 +127,7 @@ const DEFAULT_MESSAGES = {
  * 相对时间描述工具
  * @public
  *
- * @memberof module:browser/date
+ * @memberof module:common/date
  *
  * @func 相对时间描述工具
  *

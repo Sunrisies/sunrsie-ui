@@ -11,7 +11,6 @@ import { FrontMatterGenerator } from "./FrontMatterGenerator";
 import { SidebarGenerator } from "./SidebarGenerator";
 import { VitePressOptions, RenderContext } from "./types";
 import { CommentParser } from "./CommentParser";
-
 export class VitePressRenderer {
   private outputDir: string;
   private options: VitePressOptions;
@@ -36,23 +35,28 @@ export class VitePressRenderer {
 
   private clearOutputDir(): void {
     if (fs.existsSync(this.outputDir)) {
-      console.log("删除输出目录的内容", this.outputDir);
       fs.rmSync(this.outputDir, { recursive: true });
     }
     // 确保输出目录存在
     fs.mkdirSync(this.outputDir, { recursive: true });
   }
   public renderProject(project: ProjectReflection): void {
-    console.log("开始进行解析");
     // 删除输出目录的内容
     this.clearOutputDir();
+    let children = new Map();
+
     // 渲染所有反射项
     if (project.children) {
       project.children.forEach((reflection) => {
-        this.renderReflection(reflection);
+        const module = this.getModule(reflection)?.split("/")[1];
+        children.has(module)
+          ? children.get(module).push(reflection)
+          : children.set(module, [reflection]);
+      });
+      children.entries().forEach(([key, value]) => {
+        this.renderReflections(value);
       });
     }
-
     // // 生成索引页
     this.generateIndex(project);
 
@@ -64,10 +68,81 @@ export class VitePressRenderer {
     const content = this.generateMarkdownContent(reflection);
     const filename = this.getFilename(reflection);
     const filepath = path.join(this.outputDir, filename);
-
     fs.writeFileSync(filepath, content, "utf8");
   }
+  // 组合式渲染
+  private renderReflections(reflection: DeclarationReflection[]): void {
+    let lines: string[] = [];
+    reflection.sort((a, b) => a.kind - b.kind);
 
+    reflection.forEach((item) => {
+      if (item.kind === ReflectionKind.Function) {
+        this.renderFunction(item, lines);
+      }
+      if (item.kind === ReflectionKind.Interface) {
+        lines.push(`## ${item.name} 接口`);
+        lines.push(...this.renderInterface(item));
+      }
+    });
+    const filename = this.getFilename(reflection[0]);
+    const filepath = path.join(this.outputDir, filename);
+    fs.writeFileSync(filepath, lines.join("\n"), "utf8");
+  }
+  // 函数的信息
+  private renderFunction(
+    reflection: DeclarationReflection,
+    lines: string[]
+  ): string[] {
+    // 添加 FrontMatter
+    lines.push(FrontMatterGenerator.generate(reflection, this.options));
+
+    // 标题
+    lines.push(`# ${reflection.name}`);
+    lines.push("");
+
+    // 模块信息（如果有）
+    const module = this.getModule(reflection);
+
+    if (module) {
+      lines.push(`**模块**: \`${module}\``);
+      lines.push("");
+    }
+
+    // 类型标签
+    lines.push(this.renderKindBadge(reflection.kind));
+    lines.push("");
+
+    const fullDescription = CommentParser.getFullDescription(reflection);
+    if (fullDescription) {
+      lines.push("## 概述");
+      lines.push("");
+      lines.push(fullDescription);
+      lines.push("");
+    }
+
+    // 处理不同类型的渲染
+    if (
+      reflection.kind === ReflectionKind.Variable &&
+      this.isFunctionType(reflection)
+    ) {
+      lines.push(...this.renderFunctionVariable(reflection));
+    } else {
+      switch (reflection.kind) {
+        case ReflectionKind.Class:
+          lines.push(...this.renderClass(reflection));
+          break;
+        case ReflectionKind.Interface:
+          lines.push(...this.renderInterface(reflection));
+          break;
+        case ReflectionKind.Function:
+          lines.push(...this.renderFunctionVariable(reflection));
+        default:
+          // 什么都不渲染
+          break;
+      }
+    }
+    return lines;
+  }
   // 在 VitePressRenderer.ts 中添加模块信息显示
   private generateMarkdownContent(reflection: DeclarationReflection): string {
     const lines: string[] = [];
@@ -81,7 +156,7 @@ export class VitePressRenderer {
 
     // 模块信息（如果有）
     const module = this.getModule(reflection);
-    console.log(module, "------------===============");
+
     if (module) {
       lines.push(`**模块**: \`${module}\``);
       lines.push("");
@@ -101,7 +176,6 @@ export class VitePressRenderer {
       lines.push(fullDescription);
       lines.push("");
     }
-    console.log(reflection.kind, "------------------");
 
     // 处理不同类型的渲染
     if (
@@ -168,7 +242,6 @@ export class VitePressRenderer {
 
     // 获取函数签名
     const signatures = this.getFunctionSignatures(reflection);
-
     // 使用第一个签名作为主要签名
     const signature = signatures[0];
 
@@ -202,7 +275,7 @@ export class VitePressRenderer {
       lines.push("");
 
       if (signature.comment?.blockTags) {
-        lines.push(signature.comment.blockTags[0].content[0].text);
+        lines.push(`> ${signature.comment.blockTags[0].content[0].text}`);
         lines.push("");
       }
     }
@@ -225,7 +298,6 @@ export class VitePressRenderer {
       exampleComment.forEach((tag, index) => {
         lines.push(`## 案例${index + 1}`);
         lines.push("");
-        console.log(tag.content, "tag.content");
         lines.push(tag.content[0].text.trim());
         lines.push("");
       });
@@ -376,7 +448,6 @@ export class VitePressRenderer {
 
       reflection.children.forEach((child) => {
         const type = this.renderType(child.type);
-        console.log(JSON.stringify(child), "child");
         const description = child.comment?.summary[0].text || "";
         lines.push(`| ${child.name} | \`${type}\` | ${description} |`);
       });
@@ -421,7 +492,6 @@ export class VitePressRenderer {
   // 在 renderType 方法中添加对函数类型的支持
   private renderType(type: any): string {
     if (!type) return "any";
-
     switch (type.type) {
       case "intrinsic":
         return type.name;
@@ -434,6 +504,8 @@ export class VitePressRenderer {
                 .join(", ")}>`
             : "")
         );
+      case "void":
+        return "Function";
       case "array":
         return `${this.renderType(type.elementType)}[]`;
       case "union":
