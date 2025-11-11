@@ -8,7 +8,8 @@
         "dev": "tsup --watch",
         "build": "tsup",
         "clean": "rimraf dist",
-        "lint": "eslint src --ext .ts,.tsx"
+        "lint": "eslint src --ext .ts,.tsx",
+        "clear": " rimraf node_modules dist"
     },
     "devDependencies": {
         "@types/react": "^19.1.16",

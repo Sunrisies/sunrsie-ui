@@ -28,7 +28,8 @@
     "test:unit": "jest",
     "coverage": "vitest run --coverage",
     "ui": "vitest --ui",
-    "typedoc": "typedoc"
+    "typedoc": "typedoc",
+    "clear": " rimraf node_modules dist"
   },
   "repository": {
     "directory": "packages/sunrise",
@@ -70,7 +71,7 @@
     "typescript": "^5.7.2",
     "vitepress": "^1.5.0",
     "vitest": "^3.0.1",
-    "typedoc-vitepress-plugin": "packages:*"
+    "typedoc-vitepress-plugin": "workspace:*"
   },
   "config": {
     "commitizen": {

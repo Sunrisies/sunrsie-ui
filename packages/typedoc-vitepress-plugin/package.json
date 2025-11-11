@@ -6,7 +6,8 @@
   "types": "dist/index.d.mts",
   "modules": "dist/index.mjs",
   "scripts": {
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "clean": " rimraf node_modules dist"
   },
   "keywords": [],
   "author": "",
