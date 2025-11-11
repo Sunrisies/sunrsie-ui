@@ -41,7 +41,10 @@ export class SidebarGenerator {
           };
         }
 
-        if (reflection.kind !== ReflectionKind.Interface) {
+        if (
+          reflection.kind !== ReflectionKind.Interface &&
+          reflection.kind !== ReflectionKind.TypeAlias
+        ) {
           modules[moduleName].items.push({
             name: kindMap[reflection.kind] || reflection.name,
             description: itemDescription!,

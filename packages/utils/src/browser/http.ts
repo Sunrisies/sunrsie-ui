@@ -6,7 +6,7 @@ import { ensureEnvironment } from "../common/env";
  *
  * @param url - 文件下载地址（需符合 URL 规范）
  * @param filename - 保存时使用的文件名（需包含扩展名）
- * @memberof module:browser/http
+ * @memberof module:browser/downloadFile
  * @func 下载文件
  * @example
  * ```typescript
@@ -14,10 +14,10 @@ import { ensureEnvironment } from "../common/env";
  * await downloadFile('https://example.com/photo.jpg', 'vacation-photo.jpg');
  * ```
  */
-export const downloadFile = async (
+export async function downloadFile(
   url: string,
   filename: string
-): Promise<void> => {
+): Promise<void> {
   ensureEnvironment("browser", "downloadFile");
   try {
     // 使用 fetch 获取文件内容
@@ -54,7 +54,7 @@ export const downloadFile = async (
     console.error("下载文件时出错:", error);
     throw error; // 抛出错误以便调用方处理
   }
-};
+}
 
 export interface RequestConfig<T = unknown> extends Omit<RequestInit, "body"> {
   params?: Record<string, string>;
@@ -311,7 +311,7 @@ export class Http {
 /**
  * 将请求参数对象转换为 URL 查询字符串
  * @public
- * @memberof module:browser/http
+ * @memberof module:browser/URLSearchParamsUtils
  * @func 将请求参数对象转换为 URL 查询字符串。
  * @remarks
  * 支持数组和基本类型处理，自动进行 URI 组件编码。注意嵌套对象会被转换为字符串形式（如 [object Object]），
@@ -334,7 +334,7 @@ export class Http {
  * // 返回 'active=true&count=42'
  * ```
  */
-export const URLSearchParamsUtils = (data: { [key: string]: any }) => {
+export function URLSearchParamsUtils(data: { [key: string]: any }) {
   const searchParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(data)) {
@@ -347,4 +347,4 @@ export const URLSearchParamsUtils = (data: { [key: string]: any }) => {
   }
 
   return searchParams.toString();
-};
+}

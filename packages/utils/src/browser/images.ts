@@ -4,7 +4,7 @@
  *
  * @param imageUrls - 图片资源的URL数组
  * @returns 返回一个Promise，该Promise在所有图片加载完成后解析为一个包含HTMLImageElement对象的数组
- * @memberof module:browser/images
+ * @memberof module:browser/preloadAndCacheImages
  * @func 预加载并缓存一组图片资源。
  * @example
  * ```typescript
@@ -18,9 +18,9 @@
  *   \});
  * ```
  */
-export const preloadAndCacheImages = (
+export function preloadAndCacheImages(
   imageUrls: string[]
-): Promise<HTMLImageElement[]> => {
+): Promise<HTMLImageElement[]> {
   return Promise.all(
     imageUrls.map(
       (url) =>
@@ -32,12 +32,12 @@ export const preloadAndCacheImages = (
         })
     )
   );
-};
+}
 
 /**
  * 预加载并缓存图片资源。
  * @public
- * @memberof module:browser/images
+ * @memberof module:browser/preloadAndCacheImage
  * @func 预加载并缓存图片资源
  * @param imageUrl - 图片资源的URL
  * @returns 返回一个Promise，该Promise在图片加载完成后解析为一个包含HTMLImageElement对象
@@ -54,9 +54,9 @@ export const preloadAndCacheImages = (
  *   });
  * ```
  */
-export const preloadAndCacheImage = (
+export function preloadAndCacheImage(
   imageUrl: string
-): Promise<HTMLImageElement> => {
+): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     img.onload = () => {
@@ -67,4 +67,4 @@ export const preloadAndCacheImage = (
     };
     img.src = imageUrl;
   });
-};
+}

@@ -47,7 +47,7 @@ export interface UpTimeType {
  * 日期时间格式化工具类
  * @public
  * @func 日期时间格式化
- * @memberof module:common/time
+ * @memberof module:common/TimeFormatter
  *
  * @remarks
  * 提供标准日期格式、星期计算、时间格式化等功能，所有方法均为纯函数。
@@ -153,7 +153,7 @@ export class TimeFormatter {
  * 时间更新管理器
  * @public
  * @func 时间更新管理
- * @memberof module:common/time
+ * @memberof module:common/TimeUpdater
  *
  * @remarks
  * 提供自动更新时间数据的能力，通过回调函数传递格式化后的时间信息。
@@ -338,7 +338,7 @@ export class Timer {
  * 将时间值格式化为中文长日期时间字符串
  * @public
  * @func 格式化中文日期时间
- * @memberof module:common/time
+ * @memberof module:common/formatChineseDateTime
  *
  * @remarks
  * 支持 Date 实例和 ISO 格式字符串解析，自动处理时区转换
@@ -357,7 +357,7 @@ export class Timer {
  * formatChineseDateTime('2024-01-01T00:00:00'); // "2024年01月01日 00:00:00"
  * ```
  */
-export const formatChineseDateTime = (date: Date | string): string => {
+export function formatChineseDateTime(date: Date | string): string {
   const dateObj = new Date(date);
   const year = dateObj.getFullYear();
   const month = String(dateObj.getMonth() + 1).padStart(2, "0");
@@ -366,13 +366,13 @@ export const formatChineseDateTime = (date: Date | string): string => {
   const minute = String(dateObj.getMinutes()).padStart(2, "0");
   const second = String(dateObj.getSeconds()).padStart(2, "0");
   return `${year}年${month}月${day}日 ${hour}:${minute}:${second}`;
-};
+}
 
 /**
  * 时间戳转换为日期字符串
  * @public
  * @func 转换时间戳
- * @memberof module:common/time
+ * @memberof module:common/conversionTime
  *
  * @param time - 时间戳（单位：秒）
  * @returns 格式化的日期字符串，格式为 'YYYY年MM月DD日HH时MM分'
@@ -384,7 +384,7 @@ export const formatChineseDateTime = (date: Date | string): string => {
  * console.log(dateString); // 输出 "2021年10月1日00时00分"
  * ```
  */
-export const conversionTime = (time: number): string => {
+export function conversionTime(time: number): string {
   const date = new Date(time * 1000);
   const year = date.getFullYear();
   const month = date.getMonth() + 1;
@@ -392,13 +392,13 @@ export const conversionTime = (time: number): string => {
   const hours = date.getHours();
   const minutes = date.getMinutes();
   return `${year}年${month}月${day}日${hours}时${minutes}分`;
-};
+}
 
 /**
  * 将秒数转换为易读的时长字符串
  * @public
  * @func 转换时长
- * @memberof module:common/time
+ * @memberof module:common/convertTime
  *
  * @remarks
  * 支持从秒到天的单位转换，自动选择最合适的单位组合
@@ -425,10 +425,10 @@ export const conversionTime = (time: number): string => {
  * convertTime(100000, 'en'); // "11d 4h 20m"
  * ```
  */
-export const convertTime = (
+export function convertTime(
   duration: number,
   type: "en" | "zh" = "zh"
-): string => {
+): string {
   if (typeof duration !== "number" || isNaN(duration)) {
     throw new Error("参数必须为有效数字");
   }
@@ -461,4 +461,4 @@ export const convertTime = (
     parts.push(`${seconds}${type === "zh" ? " 秒" : " s"}`);
   }
   return parts.join(" ");
-};
+}

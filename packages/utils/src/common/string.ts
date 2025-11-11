@@ -1,4 +1,23 @@
 /**
+ * 生成随机字符串的返回类型
+ * @func 生成随机字符串的返回类型
+ * @memberof module:common/string
+ * @template T 输入参数的类型
+ * @description 根据输入类型决定返回类型：number返回string，其他类型返回Error
+ */
+export type GenRandStrResult<T> = T extends number ? string : Error;
+
+/**
+ * 生成随机字符串的实现
+ * @description 使用大小写字母和数字生成指定长度的随机字符串
+ *
+ * @internal
+ * @remarks 包含62个字符：26个大写字母、26个小写字母和10个数字
+ */
+const CHARACTERS =
+  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+/**
  * 生成随机字符串工具函数
  * @description 根据输入参数的类型和值生成随机字符串或返回错误
  * @public
@@ -39,32 +58,7 @@
  * const result5 = genRandStr('test'); // result5 的类型为 Error
  * ```
  */
-
-/**
- * 生成随机字符串的返回类型
- * @template T 输入参数的类型
- * @description 根据输入类型决定返回类型：number返回string，其他类型返回Error
- */
-export type GenRandStrResult<T> = T extends number ? string : Error;
-
-/**
- * 生成随机字符串的实现
- * @description 使用大小写字母和数字生成指定长度的随机字符串
- *
- * @internal
- * @remarks 包含62个字符：26个大写字母、26个小写字母和10个数字
- */
-const CHARACTERS =
-  "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-
-/**
- * 生成随机字符串的主函数
- * @func 生成随机字符串
- * @memberof module:common/string
- * @param length 字符串长度
- * @returns 随机字符串或错误对象
- */
-export const genRandStr = <T>(length: T): GenRandStrResult<T> => {
+export function genRandStr<T>(length: T): GenRandStrResult<T> {
   // 参数验证
   if (typeof length !== "number" || length <= 0) {
     return new Error("Length must be a positive number") as GenRandStrResult<T>;
@@ -77,4 +71,4 @@ export const genRandStr = <T>(length: T): GenRandStrResult<T> => {
     randomString += CHARACTERS.charAt(randomIndex);
   }
   return randomString as GenRandStrResult<T>;
-};
+}

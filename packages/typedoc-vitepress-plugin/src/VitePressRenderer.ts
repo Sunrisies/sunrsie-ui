@@ -54,6 +54,7 @@ export class VitePressRenderer {
           : children.set(module, [reflection]);
       });
       children.entries().forEach(([key, value]) => {
+        console.log(key, "key");
         this.renderReflections(value);
       });
     }
@@ -78,6 +79,12 @@ export class VitePressRenderer {
     reflection.forEach((item) => {
       if (item.kind === ReflectionKind.Function) {
         this.renderFunction(item, lines);
+      }
+      if (item.kind === ReflectionKind.Class) {
+        lines.push(this.generateMarkdownContent(item));
+      }
+      if (item.kind === ReflectionKind.TypeAlias) {
+        this.renderTypeAlias(item, lines);
       }
       if (item.kind === ReflectionKind.Interface) {
         lines.push(`## ${item.name} 接口`);
@@ -279,8 +286,32 @@ export class VitePressRenderer {
         lines.push("");
       }
     }
-    //
-    this.addExample(reflection, lines);
+    // 添加案例
+    this.addFunctionComment(reflection, lines);
+    return lines;
+  }
+  /**
+   * 添加函数的注释
+   */
+  private addFunctionComment(
+    reflection: DeclarationReflection,
+    lines: string[]
+  ): string[] {
+    if (!reflection.signatures) return lines;
+    reflection.signatures.forEach((signature) => {
+      const exampleComment = signature.comment?.blockTags?.filter(
+        (tag) => tag.tag === "@example"
+      );
+      if (exampleComment) {
+        // 处理多行示例
+        exampleComment.forEach((tag, index) => {
+          lines.push(`## 案例${index + 1}`);
+          lines.push("");
+          lines.push(tag.content[0].text.trim());
+          lines.push("");
+        });
+      }
+    });
     return lines;
   }
   /**
@@ -453,6 +484,22 @@ export class VitePressRenderer {
       });
       lines.push("");
     }
+
+    return lines;
+  }
+
+  private renderTypeAlias(
+    reflection: DeclarationReflection,
+    lines: string[]
+  ): string[] {
+    lines.push("## 类型别名");
+    lines.push("");
+    lines.push(
+      `> ${
+        reflection.comment?.blockTags?.find((tag) => tag.tag === "@description")
+          ?.content[0].text || ""
+      }`
+    );
 
     return lines;
   }

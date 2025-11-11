@@ -20,9 +20,9 @@
  * }
  * ```
  */
-export const getContentDimensions = (
+export function getContentDimensions(
   elementId: string
-): Error | { width: number; height: number } => {
+): Error | { width: number; height: number } {
   const element = document.getElementById(elementId);
   if (element) {
     const rect = element.getBoundingClientRect();
@@ -44,4 +44,4 @@ export const getContentDimensions = (
   } else {
     return new Error("找不到id为" + elementId + "的元素");
   }
-};
+}
