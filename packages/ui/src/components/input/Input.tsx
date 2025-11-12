@@ -4,7 +4,7 @@ import React, { useState } from "react";
 interface InputProps {
   placeholder?: string;
   value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onChange?: React.ChangeEventHandler<HTMLInputElement>;
   disabled?: boolean;
   size?: "large" | "middle" | "small";
   type?: "text" | "password";
@@ -17,10 +17,17 @@ interface InputProps {
   maxLength?: number;
   showCount?: boolean;
   autoSize?: boolean | { minRows?: number; maxRows?: number };
-  onPressEnter?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onPressEnter?: React.KeyboardEventHandler<HTMLInputElement>;
+  onKeyDown?: React.KeyboardEventHandler<HTMLInputElement>;
 }
 
-export const Input: React.FC<InputProps> = ({
+type InputComponent = React.FC<InputProps> & {
+  TextArea: React.FC<InputProps>;
+  Search: React.FC<SearchProps>;
+  Password: React.FC<InputProps>;
+};
+
+export const Input: InputComponent = ({
   placeholder,
   value,
   onChange,
@@ -32,11 +39,9 @@ export const Input: React.FC<InputProps> = ({
   suffix,
   addonBefore,
   addonAfter,
-  allowClear,
   maxLength,
-  showCount,
-  autoSize,
   onPressEnter,
+  onKeyDown,
 }) => {
   const [inputValue, setInputValue] = useState(value || "");
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
@@ -47,6 +52,7 @@ export const Input: React.FC<InputProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    onKeyDown && onKeyDown(e);
     if (e.key === "Enter") {
       onPressEnter && onPressEnter(e);
     }
@@ -122,9 +128,17 @@ export const Input: React.FC<InputProps> = ({
   if (addonBefore || addonAfter) {
     return (
       <div className="flex">
-        {addonBefore && <div className="flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 rounded-l-md">{addonBefore}</div>}
+        {addonBefore && (
+          <div className="flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 rounded-l-md">
+            {addonBefore}
+          </div>
+        )}
         {renderInput()}
-        {addonAfter && <div className="flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 rounded-r-md">{addonAfter}</div>}
+        {addonAfter && (
+          <div className="flex items-center px-3 border border-l-0 border-gray-300 bg-gray-50 rounded-r-md">
+            {addonAfter}
+          </div>
+        )}
       </div>
     );
   }
@@ -177,15 +191,15 @@ export const TextArea: React.FC<InputProps> = ({
   };
 
   return (
-    <div className="relative">
+    <div className={`relative ${className || ""}`}>
       <textarea
         placeholder={placeholder}
         value={value !== undefined ? value : inputValue}
         onChange={handleInputChange}
         disabled={disabled}
         maxLength={maxLength}
-        className={`border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${getSizeClass()} ${disabled ? "bg-gray-100 cursor-not-allowed" : ""} ${className || ""}`}
-        style={{ ...getAutoSizeStyle(), resize: "autoSize" ? "none" : "vertical" }}
+        className={`border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${getSizeClass()} ${disabled ? "bg-gray-100 cursor-not-allowed" : ""} w-full`}
+        style={{ ...getAutoSizeStyle(), resize: autoSize ? "none" : "vertical" }}
       />
       {showCount && (
         <div className="absolute bottom-2 right-2 text-xs text-gray-500">
@@ -198,7 +212,7 @@ export const TextArea: React.FC<InputProps> = ({
 
 // Search 组件
 interface SearchProps extends InputProps {
-  onSearch?: (value: string) => void;
+  onSearch?: any;
   enterButton?: boolean | React.ReactNode;
   loading?: boolean;
 }

@@ -4,9 +4,17 @@
     "main": "dist/index.mjs",
     "types": "dist/index.d.mts",
     "modules": "dist/index.mjs",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.mts",
+            "default": "./dist/index.mjs"
+        },
+        "./styles.css": "./dist/styles.css"
+    },
     "scripts": {
         "dev": "tsup --watch",
-        "build": "tsup",
+        "build": "tsup && pnpm run build:css",
+        "build:css": "tailwindcss -c tailwind.config.ts -i ./src/styles/tailwind.css -o ./dist/styles.css --minify",
         "clean": "rimraf dist",
         "lint": "eslint src --ext .ts,.tsx",
         "clear": " rimraf node_modules dist"
@@ -15,7 +23,10 @@
         "@types/react": "^19.1.16",
         "@types/react-dom": "^19.1.9",
         "react": "19.2.0",
-        "react-dom": "19.2.0"
+        "react-dom": "19.2.0",
+        "tailwindcss": "^3.4.14",
+        "postcss": "^8.4.47",
+        "autoprefixer": "^10.4.20"
     },
     "dependencies": {
         "rimraf": "^5.0.5",
