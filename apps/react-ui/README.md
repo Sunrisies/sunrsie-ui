@@ -1,75 +1,47 @@
-# React + TypeScript + Vite
+# react-ui
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+一个使用 Vite（rolldown-vite）与 React 19 开发的示例应用，演示如何在 Monorepo 中消费 `sunrise/ui` 组件库与 `sunrise-utils` 工具库。
 
-Currently, two official plugins are available:
+## 启动与构建
+- 开发：`pnpm dev`
+- 构建：`pnpm build`
+- 预览：`pnpm preview`
+- Lint：`pnpm lint`
+- 清理：`pnpm clean`
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+建议在仓库根目录通过 `pnpm --filter react-ui <cmd>` 调用，例如：`pnpm --filter react-ui dev`。
 
-## React Compiler
+## 依赖
+- `react`、`react-dom`（19.x）
+- `sunrise/ui`（组件库，workspace 依赖）
+- `sunrise-utils`（工具库，workspace 依赖）
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+## 使用示例
+使用组件库中的 `Button` 与 `Input`：
 
-Note: This will impact Vite dev & build performances.
+```tsx
+import { Button, Input } from 'sunrise/ui'
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        // tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+export default function App() {
+  return (
+    <div>
+      <Button onClick={() => alert('clicked')}>点击我</Button>
+      <Input placeholder="请输入" allowClear />
+    </div>
+  )
+}
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+使用工具库中的常用方法（示例：相对时间与文件大小格式化）：
 
-```js
-// eslint.config.js
-import reactX from "eslint-plugin-react-x";
-import reactDom from "eslint-plugin-react-dom";
+```ts
+import { getRelativeTime } from 'sunrise-utils'
+import { formatBytes } from 'sunrise-utils'
 
-export default defineConfig([
-  globalIgnores(["dist"]),
-  {
-    files: ["**/*.{ts,tsx}"],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs["recommended-typescript"],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ["./tsconfig.node.json", "./tsconfig.app.json"],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-]);
+console.log(getRelativeTime(new Date(Date.now() - 60_000))) // "1分钟前"
+console.log(formatBytes(1234)) // "1.21 KB"
 ```
+
+## 环境与说明
+- Node.js ≥ 18，推荐配合 `pnpm@10` 使用
+- 使用 `rolldown-vite@7` 作为 Vite 适配版本（见 `package.json` overrides）
