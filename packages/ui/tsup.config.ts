@@ -4,7 +4,7 @@ import path from "path";
 
 // 获取所有组件的入口文件
 async function getEntries() {
-  const componentDirs = await glob("src/components/*/index.ts");
+  const componentDirs = await glob("src/components/*/index.{ts,tsx}");
   const entries: Record<string, string> = {};
 
   // 添加主入口

@@ -22,6 +22,11 @@
             "types": "./dist/Input.d.mts",
             "default": "./dist/Input.mjs"
         }
+        ,
+        "./Table": {
+            "types": "./dist/Table.d.mts",
+            "default": "./dist/Table.mjs"
+        }
     },
   "scripts": {
     "dev": "tsup --watch",
