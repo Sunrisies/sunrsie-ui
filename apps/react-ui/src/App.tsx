@@ -1,7 +1,7 @@
 import './App.css'
 import { Button, Card } from 'sunrise/ui'
 import { genRandStr } from "sunrise-utils"
-
+import { TableDemo } from './components/table'
 function App() {
   console.log(genRandStr(100))
   return (
@@ -34,7 +34,7 @@ function App() {
         </Card>
       </div>
 
-
+      <TableDemo></TableDemo>
     </div>
   )
 }

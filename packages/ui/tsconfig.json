@@ -12,6 +12,11 @@
             "dom.iterable",
             "esnext"
         ],
+        "paths": {
+            "@/*": [
+                "./src/*"
+            ]
+        },
     },
     "include": [
         "./src",
