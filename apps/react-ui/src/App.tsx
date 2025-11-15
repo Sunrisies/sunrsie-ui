@@ -2,6 +2,8 @@ import './App.css'
 import { Button, Card } from 'sunrise/ui'
 import { genRandStr } from "sunrise-utils"
 import { TableDemo } from './components/table'
+import { Pagination } from './components/customPagination'
+import { DataTableDemo } from './components/dataTable'
 function App() {
   console.log(genRandStr(100))
   return (
@@ -35,6 +37,8 @@ function App() {
       </div>
 
       <TableDemo></TableDemo>
+      <Pagination></Pagination>
+      <DataTableDemo></DataTableDemo>
     </div>
   )
 }
