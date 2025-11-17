@@ -25,5 +25,16 @@ export interface ModuleInfo {
     description: string;
     link: string;
     kind: string;
+    module?: string;
+  }>;
+  subgroups?: Record<string, {
+    name: string;
+    items: Array<{
+      name: string;
+      description: string;
+      link: string;
+      kind: string;
+      module?: string;
+    }>;
   }>;
 }

@@ -162,4 +162,58 @@ export class CommentParser {
     const kindName = ReflectionKind[reflection.kind].toLowerCase();
     return `${reflection.name} ${kindName}`;
   }
+
+  /**
+   * 获取分类信息（@category标签）
+   */
+  static getCategory(reflection: DeclarationReflection): string | null {
+    return this.extractTagFromComment(reflection.comment, "@category") ||
+           this.extractTagFromSignatures(reflection, "@category");
+  }
+
+  /**
+   * 获取模块信息（@module标签）
+   */
+  static getModuleTag(reflection: DeclarationReflection): string | null {
+    return this.extractTagFromComment(reflection.comment, "@module") ||
+           this.extractTagFromSignatures(reflection, "@module");
+  }
+
+  /**
+   * 从注释中提取标签值
+   */
+  private static extractTagFromComment(
+    comment: Comment | undefined,
+    tagName: string
+  ): string | null {
+    if (!comment?.blockTags) return null;
+    
+    const tag = comment.blockTags.find((tag) => tag.tag === tagName);
+    return tag ? tag.content[0].text.trim() : null;
+  }
+
+  /**
+   * 从签名中提取标签值
+   */
+  private static extractTagFromSignatures(
+    reflection: DeclarationReflection,
+    tagName: string
+  ): string | null {
+    if (reflection.signatures) {
+      for (const signature of reflection.signatures) {
+        const value = this.extractTagFromComment(signature.comment, tagName);
+        if (value) return value;
+      }
+    }
+    
+    // 检查类型声明中的签名
+    if (reflection.type?.type === "reflection" && reflection.type.declaration?.signatures) {
+      for (const signature of reflection.type.declaration.signatures) {
+        const value = this.extractTagFromComment(signature.comment, tagName);
+        if (value) return value;
+      }
+    }
+    
+    return null;
+  }
 }

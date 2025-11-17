@@ -6,19 +6,36 @@ import {
   Models,
 } from "typedoc";
 import * as fs from "fs";
+import { promises as fsPromises } from "fs";
 import * as path from "path";
 import { FrontMatterGenerator } from "./FrontMatterGenerator";
 import { SidebarGenerator } from "./SidebarGenerator";
 import { VitePressOptions, RenderContext } from "./types";
 import { CommentParser } from "./CommentParser";
+import { SlugGenerator } from "./SlugGenerator";
+
+/**
+ * VitePress文档渲染器
+ * 
+ * 将TypeDoc的反射数据渲染为VitePress兼容的Markdown文档
+ */
 export class VitePressRenderer {
   private outputDir: string;
   private options: VitePressOptions;
+  private incremental: boolean;
+  private processedFiles: Set<string>;
 
+  /**
+   * 创建VitePress渲染器实例
+   * 
+   * @param typedocOptions - TypeDoc选项
+   */
   constructor(typedocOptions: Options) {
     this.outputDir =
       (typedocOptions.getValue("vitepressOutput") as string) ||
       "./docs/.vitepress/api";
+    this.incremental = (typedocOptions.getValue("vitepressIncremental") as boolean) || false;
+    this.processedFiles = new Set();
     this.options = {
       outputDir: this.outputDir,
       baseUrl: (typedocOptions.getValue("vitepressBaseUrl") as string) || "/",
@@ -30,19 +47,34 @@ export class VitePressRenderer {
         "Auto-generated API documentation",
       frontmatter: {},
     };
-    this.clearOutputDir();
   }
 
-  private clearOutputDir(): void {
-    if (fs.existsSync(this.outputDir)) {
-      fs.rmSync(this.outputDir, { recursive: true });
+  private async clearOutputDir(): Promise<void> {
+    try {
+      if (fs.existsSync(this.outputDir)) {
+        await fsPromises.rm(this.outputDir, { recursive: true });
+      }
+      // 确保输出目录存在
+      await fsPromises.mkdir(this.outputDir, { recursive: true });
+    } catch (error) {
+      console.error(`Failed to clear output directory: ${error}`);
+      throw error;
     }
-    // 确保输出目录存在
-    fs.mkdirSync(this.outputDir, { recursive: true });
   }
-  public renderProject(project: ProjectReflection): void {
-    // 删除输出目录的内容
-    this.clearOutputDir();
+  /**
+   * 渲染整个TypeDoc项目为VitePress文档
+   * 
+   * @param project - TypeDoc项目反射
+   */
+  public async renderProject(project: ProjectReflection): Promise<void> {
+    // 删除输出目录的内容 (只在非增量模式下)
+    if (!this.incremental) {
+      await this.clearOutputDir();
+    } else {
+      // 增量模式下确保目录存在
+      await fsPromises.mkdir(this.outputDir, { recursive: true });
+    }
+
     let children = new Map();
 
     // 渲染所有反射项
@@ -53,26 +85,46 @@ export class VitePressRenderer {
           ? children.get(module).push(reflection)
           : children.set(module, [reflection]);
       });
-      children.entries().forEach(([key, value]) => {
-        console.log(key, "key");
-        this.renderReflections(value);
-      });
+
+      // Process modules sequentially to avoid race conditions
+      for (const [key, value] of children.entries()) {
+        await this.renderReflections(value);
+      }
     }
     // // 生成索引页
-    this.generateIndex(project);
+    await this.generateIndex(project);
 
     // 生成侧边栏配置
-    this.generateSidebarConfig(project);
+    await this.generateSidebarConfig(project);
+
+    // 增量模式下清理未使用的文件
+    if (this.incremental) {
+      await this.cleanupUnusedFiles();
+    }
   }
 
-  private renderReflection(reflection: DeclarationReflection): void {
+  private async renderReflection(reflection: DeclarationReflection): Promise<void> {
     const content = this.generateMarkdownContent(reflection);
     const filename = this.getFilename(reflection);
     const filepath = path.join(this.outputDir, filename);
-    fs.writeFileSync(filepath, content, "utf8");
+
+    // 跟踪处理的文件
+    this.processedFiles.add(filename);
+
+    // 增量模式下检查文件是否需要更新
+    if (this.incremental && await this.shouldSkipFile(filepath, content)) {
+      return;
+    }
+
+    try {
+      await fsPromises.writeFile(filepath, content, "utf8");
+    } catch (error) {
+      console.error(`Failed to write file ${filepath}: ${error}`);
+      throw error;
+    }
   }
   // 组合式渲染
-  private renderReflections(reflection: DeclarationReflection[]): void {
+  private async renderReflections(reflection: DeclarationReflection[]): Promise<void> {
     let lines: string[] = [];
     reflection.sort((a, b) => a.kind - b.kind);
 
@@ -93,7 +145,12 @@ export class VitePressRenderer {
     });
     const filename = this.getFilename(reflection[0]);
     const filepath = path.join(this.outputDir, filename);
-    fs.writeFileSync(filepath, lines.join("\n"), "utf8");
+    try {
+      await fsPromises.writeFile(filepath, lines.join("\n"), "utf8");
+    } catch (error) {
+      console.error(`Failed to write file ${filepath}: ${error}`);
+      throw error;
+    }
   }
   // 函数的信息
   private renderFunction(
@@ -109,9 +166,21 @@ export class VitePressRenderer {
 
     // 模块信息（如果有）
     const module = this.getModule(reflection);
+    const moduleTag = CommentParser.getModuleTag(reflection);
+    const category = CommentParser.getCategory(reflection);
 
     if (module) {
       lines.push(`**模块**: \`${module}\``);
+      lines.push("");
+    }
+
+    if (moduleTag) {
+      lines.push(`**模块标签**: \`${moduleTag}\``);
+      lines.push("");
+    }
+
+    if (category) {
+      lines.push(`**分类**: \`${category}\``);
       lines.push("");
     }
 
@@ -163,9 +232,21 @@ export class VitePressRenderer {
 
     // 模块信息（如果有）
     const module = this.getModule(reflection);
+    const moduleTag = CommentParser.getModuleTag(reflection);
+    const category = CommentParser.getCategory(reflection);
 
     if (module) {
       lines.push(`**模块**: \`${module}\``);
+      lines.push("");
+    }
+
+    if (moduleTag) {
+      lines.push(`**模块标签**: \`${moduleTag}\``);
+      lines.push("");
+    }
+
+    if (category) {
+      lines.push(`**分类**: \`${category}\``);
       lines.push("");
     }
 
@@ -363,17 +444,16 @@ export class VitePressRenderer {
    */
   private renderFunctionVariableSignature(
     reflection: DeclarationReflection,
-    signature: any
+    signature: Models.SignatureReflection
   ): string {
     const params = signature.parameters
       ? signature.parameters
-          .map(
-            (param: any) =>
-              `${param.name}${
-                param.flags?.isOptional ? "?" : ""
-              }: ${this.renderType(param.type)}`
-          )
-          .join(", ")
+        .map(
+          (param: Models.ParameterReflection) =>
+            `${param.name}${param.flags?.isOptional ? "?" : ""
+            }: ${this.renderType(param.type)}`
+        )
+        .join(", ")
       : "";
 
     const returnType = signature.type
@@ -495,25 +575,23 @@ export class VitePressRenderer {
     lines.push("## 类型别名");
     lines.push("");
     lines.push(
-      `> ${
-        reflection.comment?.blockTags?.find((tag) => tag.tag === "@description")
-          ?.content[0].text || ""
+      `> ${reflection.comment?.blockTags?.find((tag) => tag.tag === "@description")
+        ?.content[0].text || ""
       }`
     );
 
     return lines;
   }
 
-  private renderSignature(signature: any): string {
+  private renderSignature(signature: Models.SignatureReflection): string {
     const params = signature.parameters
       ? signature.parameters
-          .map(
-            (param: any) =>
-              `${param.name}${
-                param.flags?.isOptional ? "?" : ""
-              }: ${this.renderType(param.type)}`
-          )
-          .join(", ")
+        .map(
+          (param: any) =>
+            `${param.name}${param.flags?.isOptional ? "?" : ""
+            }: ${this.renderType(param.type)}`
+        )
+        .join(", ")
       : "";
 
     const returnType = signature.type
@@ -528,9 +606,8 @@ export class VitePressRenderer {
 
     return reflection.signatures[0].parameters
       .map(
-        (param: any) =>
-          `${param.name}${
-            param.flags?.isOptional ? "?" : ""
+        (param: Models.ParameterReflection) =>
+          `${param.name}${param.flags?.isOptional ? "?" : ""
           }: ${this.renderType(param.type)}`
       )
       .join(", ");
@@ -547,8 +624,8 @@ export class VitePressRenderer {
           type.name +
           (type.typeArguments
             ? `<${type.typeArguments
-                .map((arg: any) => this.renderType(arg))
-                .join(", ")}>`
+              .map((arg: Models.Type) => this.renderType(arg))
+              .join(", ")}>`
             : "")
         );
       case "void":
@@ -556,9 +633,9 @@ export class VitePressRenderer {
       case "array":
         return `${this.renderType(type.elementType)}[]`;
       case "union":
-        return type.types.map((t: any) => this.renderType(t)).join(" | ");
+        return type.types.map((t: Models.Type) => this.renderType(t)).join(" | ");
       case "intersection":
-        return type.types.map((t: any) => this.renderType(t)).join(" & ");
+        return type.types.map((t: Models.Type) => this.renderType(t)).join(" & ");
       case "literal":
         return typeof type.value === "string" ? `"${type.value}"` : type.value;
       case "reflection":
@@ -567,11 +644,11 @@ export class VitePressRenderer {
           const signature = type.declaration.signatures[0];
           const params = signature.parameters
             ? signature.parameters
-                .map(
-                  (param: any) =>
-                    `${param.name}: ${this.renderType(param.type)}`
-                )
-                .join(", ")
+              .map(
+                (param: Models.ParameterReflection) =>
+                  `${param.name}: ${this.renderType(param.type)}`
+              )
+              .join(", ")
             : "";
           const returnType = signature.type
             ? this.renderType(signature.type)
@@ -582,9 +659,8 @@ export class VitePressRenderer {
         if (type.declaration && type.declaration.children) {
           const props = type.declaration.children
             .map(
-              (child: any) =>
-                `${child.name}${
-                  child.flags?.isOptional ? "?" : ""
+              (child: DeclarationReflection) =>
+                `${child.name}${child.flags?.isOptional ? "?" : ""
                 }: ${this.renderType(child.type)}`
             )
             .join("; ");
@@ -599,12 +675,11 @@ export class VitePressRenderer {
   }
 
   private getFilename(reflection: DeclarationReflection): string {
-    const name = reflection.name.toLowerCase().replace(/[^a-z0-9]/g, "-");
-    return `${name}.md`;
+    return `${SlugGenerator.generateSlug(reflection.name)}.md`;
   }
 
   // 在 VitePressRenderer.ts 中修改 generateIndex 方法
-  private generateIndex(project: ProjectReflection): void {
+  private async generateIndex(project: ProjectReflection): Promise<void> {
     const lines: string[] = [];
 
     lines.push("---");
@@ -651,14 +726,19 @@ export class VitePressRenderer {
       }
     }
 
-    fs.writeFileSync(
-      path.join(this.outputDir, "index.md"),
-      lines.join("\n"),
-      "utf8"
-    );
+    try {
+      await fsPromises.writeFile(
+        path.join(this.outputDir, "index.md"),
+        lines.join("\n"),
+        "utf8"
+      );
+    } catch (error) {
+      console.error(`Failed to write index file: ${error}`);
+      throw error;
+    }
   }
 
-  private generateSidebarConfig(project: ProjectReflection): void {
+  private async generateSidebarConfig(project: ProjectReflection): Promise<void> {
     const sidebar = SidebarGenerator.generate(project, this.options);
     const configPath = path.join(
       this.outputDir,
@@ -667,6 +747,44 @@ export class VitePressRenderer {
       "sidebar.json"
     );
 
-    fs.writeFileSync(configPath, JSON.stringify(sidebar, null, 2), "utf8");
+    try {
+      await fsPromises.writeFile(configPath, JSON.stringify(sidebar, null, 2), "utf8");
+    } catch (error) {
+      console.error(`Failed to write sidebar config: ${error}`);
+      throw error;
+    }
+  }
+
+  /**
+   * 检查文件是否需要跳过（增量模式下）
+   */
+  private async shouldSkipFile(filepath: string, newContent: string): Promise<boolean> {
+    try {
+      const existingContent = await fsPromises.readFile(filepath, 'utf8');
+      return existingContent === newContent;
+    } catch {
+      // 文件不存在，需要生成
+      return false;
+    }
+  }
+
+  /**
+   * 清理未使用的文件（增量模式下）
+   */
+  private async cleanupUnusedFiles(): Promise<void> {
+    try {
+      const files = await fsPromises.readdir(this.outputDir);
+      const markdownFiles = files.filter(file => file.endsWith('.md') && file !== 'index.md');
+
+      for (const file of markdownFiles) {
+        if (!this.processedFiles.has(file)) {
+          const filepath = path.join(this.outputDir, file);
+          await fsPromises.unlink(filepath);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to cleanup unused files: ${error}`);
+      // 不抛出错误，因为清理失败不影响主要功能
+    }
   }
 }

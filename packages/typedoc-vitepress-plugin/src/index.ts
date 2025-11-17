@@ -1,4 +1,20 @@
-// src/index.ts
+/**
+ * TypeDoc VitePress Plugin
+ * 
+ * A TypeDoc plugin that generates VitePress-compatible documentation from TypeScript code.
+ * 
+ * @example
+ * ```typescript
+ * // typedoc.json
+ * {
+ *   "plugin": ["typedoc-vitepress-plugin"],
+ *   "vitepressOutput": "./docs/api",
+ *   "vitepressBaseUrl": "/",
+ *   "vitepressTitle": "API Documentation",
+ *   "vitepressDescription": "Generated API documentation"
+ * }
+ * ```
+ */
 import {
   Application,
   ParameterType,
@@ -8,6 +24,11 @@ import {
 } from "typedoc";
 import { VitePressRenderer } from "./VitePressRenderer";
 
+/**
+ * Load the TypeDoc VitePress plugin
+ * 
+ * @param app - TypeDoc application instance
+ */
 export function load(app: Application) {
   // 注册插件选项
   app.options.addDeclaration({
@@ -38,12 +59,24 @@ export function load(app: Application) {
     defaultValue: "Auto-generated API documentation",
   });
 
+  app.options.addDeclaration({
+    name: "vitepressIncremental",
+    help: "Enable incremental generation (only regenerate changed files)",
+    type: ParameterType.Boolean,
+    defaultValue: false,
+  });
+
   //   在转换完成后生成 VitePress 文档
   (app.converter as EventDispatcher).on(
     Converter.EVENT_END,
-    (context: Context) => {
+    async (context: Context) => {
       const renderer = new VitePressRenderer(app.options);
-      renderer.renderProject(context.project);
+      try {
+        await renderer.renderProject(context.project);
+      } catch (error) {
+        console.error("Failed to render VitePress documentation:", error);
+        throw error;
+      }
     }
   );
 }

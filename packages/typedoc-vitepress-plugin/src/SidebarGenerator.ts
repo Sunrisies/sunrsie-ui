@@ -24,38 +24,71 @@ export class SidebarGenerator {
   }
   static generate(project: ProjectReflection, options: VitePressOptions): any {
     const modules: Record<string, ModuleInfo> = {};
+    const categories: Record<string, ModuleInfo> = {};
 
     if (project.children) {
-      // 首先按模块分组
+      // 首先按模块和分类分组
       for (const reflection of project.children) {
-        const moduleName =
-          this.getModule(reflection)?.split("/")[0] || "Global";
-        const aa = this.getModule(reflection);
-        console.log(aa, "this.getModule(reflection)");
-        const itemDescription = this.getModule(reflection, "@func");
-        if (!modules[moduleName]) {
-          modules[moduleName] = {
-            name: kindMap[moduleName] || moduleName,
-            description: this.getModuleDescription(moduleName),
+        const moduleName = this.getModule(reflection)?.split("/")[0] || "Global";
+        const category = CommentParser.getCategory(reflection) || moduleName;
+        const moduleTag = CommentParser.getModuleTag(reflection) || moduleName;
+        const itemDescription = this.getModule(reflection, "@func") || reflection.name;
+
+        // 使用分类作为主要分组，模块作为子分组
+        const groupKey = category || moduleName;
+
+        if (!categories[groupKey]) {
+          categories[groupKey] = {
+            name: kindMap[groupKey] || groupKey,
+            description: this.getModuleDescription(groupKey),
             items: [],
+            subgroups: {},
           };
         }
 
-        if (
-          reflection.kind !== ReflectionKind.Interface &&
-          reflection.kind !== ReflectionKind.TypeAlias
-        ) {
-          modules[moduleName].items.push({
-            name: kindMap[reflection.kind] || reflection.name,
-            description: itemDescription!,
+        // 根据类型决定是否显示在侧边栏中
+        if (this.shouldIncludeInSidebar(reflection)) {
+          const item = {
+            name: reflection.name,
+            description: itemDescription,
             link: this.getLink(reflection, options),
             kind: ReflectionKind[reflection.kind],
-          });
+            module: moduleTag,
+          };
+
+          // 如果有子模块，创建子分组
+          if (moduleTag !== groupKey) {
+            if (!categories[groupKey].subgroups![moduleTag]) {
+              categories[groupKey].subgroups![moduleTag] = {
+                name: kindMap[moduleTag] || moduleTag,
+                items: [],
+              };
+            }
+            categories[groupKey].subgroups![moduleTag].items.push(item);
+          } else {
+            categories[groupKey].items.push(item);
+          }
         }
       }
     }
+
     // 转换为 VitePress 侧边栏格式
-    return this.convertToVitePressSidebar(modules, options);
+    return this.convertToVitePressSidebar(categories, options);
+  }
+
+  /**
+   * 判断反射是否应包含在侧边栏中
+   */
+  private static shouldIncludeInSidebar(reflection: DeclarationReflection): boolean {
+    // 排除接口和类型别名，除非它们有重要的文档
+    if (reflection.kind === ReflectionKind.Interface ||
+      reflection.kind === ReflectionKind.TypeAlias) {
+      // 如果有详细的注释或示例，则包含
+      return !!(
+        reflection.comment?.blockTags?.some(tag => tag.tag === "@example"));
+    }
+
+    return true;
   }
 
   /**
@@ -77,31 +110,61 @@ export class SidebarGenerator {
    * 转换为 VitePress 侧边栏格式
    */
   private static convertToVitePressSidebar(
-    modules: Record<string, ModuleInfo>,
+    categories: Record<string, ModuleInfo>,
     options: VitePressOptions
   ): any {
     const sidebarItems: any[] = [];
 
-    // 按模块名称排序
-    const sortedModuleNames = Object.keys(modules).sort();
-    // console.log(sortedModuleNames, "sortedModuleNames");
-    for (const moduleName of sortedModuleNames) {
-      const module = modules[moduleName];
+    // 按分类名称排序
+    const sortedCategoryNames = Object.keys(categories).sort();
 
-      // 对模块内的项目按名称排序
-      module.items.sort((a, b) => a.name.localeCompare(b.name));
-      // console.log(module, "module");
-      sidebarItems.push({
-        text: module.name.split("/")[0],
+    for (const categoryName of sortedCategoryNames) {
+      const category = categories[categoryName];
+
+      // 对分类内的项目按名称排序
+      category.items.sort((a, b) => a.name.localeCompare(b.name));
+
+      // 创建主分类项
+      const categoryItem: any = {
+        text: category.name,
         collapsible: true,
         collapsed: false,
-        items: module.items.map((item) => ({
-          text: item.description || item.name, // 使用函数描述作为显示文本
+        items: [],
+      };
+
+      // 添加直接属于分类的项目
+      category.items.forEach((item) => {
+        categoryItem.items.push({
+          text: item.description || item.name,
           link: item.link,
-        })),
+        });
       });
+
+      // 添加子分组
+      if (category.subgroups) {
+        const sortedSubgroupNames = Object.keys(category.subgroups).sort();
+
+        for (const subgroupName of sortedSubgroupNames) {
+          const subgroup = category.subgroups[subgroupName];
+
+          // 对子分组内的项目按名称排序
+          subgroup.items.sort((a, b) => a.name.localeCompare(b.name));
+
+          categoryItem.items.push({
+            text: subgroup.name,
+            collapsible: true,
+            collapsed: true,
+            items: subgroup.items.map((item) => ({
+              text: item.description || item.name,
+              link: item.link,
+            })),
+          });
+        }
+      }
+
+      sidebarItems.push(categoryItem);
     }
-    // console.log(sidebarItems, "1-1-1-1-1-1-");
+
     return sidebarItems;
   }
 
