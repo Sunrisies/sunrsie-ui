@@ -2,54 +2,39 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { VitePressRenderer } from '../src/VitePressRenderer'
 import { ProjectReflection, DeclarationReflection, ReflectionKind, Options } from 'typedoc'
 
-// Mock fs modules with factory functions
-vi.mock('fs', async () => {
-  const actual = await vi.importActual<typeof import('fs')>('fs')
-  return {
-    ...actual,
-    existsSync: vi.fn(),
-    promises: {
-      mkdir: vi.fn(),
-      writeFile: vi.fn(),
-      rm: vi.fn(),
-      readdir: vi.fn(),
-      readFile: vi.fn(),
-      unlink: vi.fn()
-    }
-  }
-})
+// Create simple mock functions
+const mockExistsSync = vi.fn()
+const mockMkdir = vi.fn()
+const mockWriteFile = vi.fn()
+const mockRm = vi.fn()
+const mockReaddir = vi.fn()
+
+// Mock the fs modules
+vi.mock('fs', () => ({
+  existsSync: mockExistsSync
+}))
 
 vi.mock('fs/promises', () => ({
-  mkdir: vi.fn(),
-  writeFile: vi.fn(),
-  rm: vi.fn(),
-  readdir: vi.fn(),
-  readFile: vi.fn(),
-  unlink: vi.fn()
+  mkdir: mockMkdir,
+  writeFile: mockWriteFile,
+  rm: mockRm,
+  readdir: mockReaddir
 }))
 
 describe('VitePressRenderer', () => {
   let mockOptions: Options
   let renderer: VitePressRenderer
 
-  beforeEach(async () => {
-    // Import mocked modules inside beforeEach
-    const fs = await import('fs')
-    const fsPromises = await import('fs/promises')
-    
+  beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks()
     
     // Setup default mock behaviors
-    vi.mocked(fs.existsSync).mockReturnValue(false)
-    vi.mocked(fs.promises.mkdir).mockResolvedValue(undefined)
-    vi.mocked(fs.promises.writeFile).mockResolvedValue(undefined)
-    vi.mocked(fs.promises.rm).mockResolvedValue(undefined)
-    vi.mocked(fs.promises.readdir).mockResolvedValue([])
-    vi.mocked(fsPromises.mkdir).mockResolvedValue(undefined)
-    vi.mocked(fsPromises.writeFile).mockResolvedValue(undefined)
-    vi.mocked(fsPromises.rm).mockResolvedValue(undefined)
-    vi.mocked(fsPromises.readdir).mockResolvedValue([])
+    mockExistsSync.mockReturnValue(false)
+    mockMkdir.mockResolvedValue(undefined)
+    mockWriteFile.mockResolvedValue(undefined)
+    mockRm.mockResolvedValue(undefined)
+    mockReaddir.mockResolvedValue([])
     
     mockOptions = {
       getValue: vi.fn((key: string) => {
@@ -109,11 +94,10 @@ describe('VitePressRenderer', () => {
         children: undefined
       } as unknown as ProjectReflection
 
-      const fs = await import('fs')
       await renderer.renderProject(mockProject)
 
       // Verify directory creation was called
-      expect(fs.promises.mkdir).toHaveBeenCalledWith('./docs/api', { recursive: true })
+      expect(mockMkdir).toHaveBeenCalledWith('./docs/api', { recursive: true })
     })
 
     it('should handle incremental generation mode', async () => {
@@ -136,15 +120,13 @@ describe('VitePressRenderer', () => {
         children: undefined
       } as unknown as ProjectReflection
 
-      const fs = await import('fs')
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true)
+      mockExistsSync.mockReturnValue(true)
 
       await incrementalRenderer.renderProject(mockProject)
 
       // In incremental mode, should not clear directory
-      expect(fs.promises.rm).not.toHaveBeenCalled()
-      expect(fs.promises.mkdir).toHaveBeenCalledWith('./docs/api', { recursive: true })
+      expect(mockRm).not.toHaveBeenCalled()
+      expect(mockMkdir).toHaveBeenCalledWith('./docs/api', { recursive: true })
     })
 
     it('should handle errors during directory operations', async () => {
@@ -153,10 +135,8 @@ describe('VitePressRenderer', () => {
         children: undefined
       } as unknown as ProjectReflection
 
-      const fs = await import('fs')
-      
-      vi.mocked(fs.existsSync).mockReturnValue(true)
-      vi.mocked(fs.promises.rm).mockRejectedValue(new Error('Permission denied'))
+      mockExistsSync.mockReturnValue(true)
+      mockRm.mockRejectedValue(new Error('Permission denied'))
 
       await expect(renderer.renderProject(mockProject)).rejects.toThrow('Permission denied')
     })
@@ -169,11 +149,7 @@ describe('VitePressRenderer', () => {
         kind: ReflectionKind.Function,
         comment: {
           shortText: 'Test function'
-        },
-        signatures: [{
-          parameters: [],
-          type: { type: 'intrinsic', name: 'void' }
-        }]
+        }
       } as unknown as DeclarationReflection
 
       const mockProject = {
@@ -181,9 +157,9 @@ describe('VitePressRenderer', () => {
         children: [mockReflection]
       } as unknown as ProjectReflection
 
-      const fs = await import('fs')
-      
-      vi.mocked(fs.promises.writeFile).mockRejectedValue(new Error('Write failed'))
+      mockExistsSync.mockReturnValue(false)
+      mockMkdir.mockResolvedValue(undefined)
+      mockWriteFile.mockRejectedValue(new Error('Write failed'))
 
       await expect(renderer.renderProject(mockProject)).rejects.toThrow('Write failed')
     })
