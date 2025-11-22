@@ -1,0 +1,34 @@
+{
+    "name": "sunrise-cesium-utils",
+    "version": "1.0.0",
+    "description": "Cesium utility library for Sunrise UI",
+    "main": "dist/index.js",
+    "module": "dist/index.esm.js",
+    "types": "dist/index.d.ts",
+    "files": [
+        "dist",
+        "assets"
+    ],
+    "scripts": {
+        "tsc": "tsc",
+        "dev": "tsup --watch",
+        "build": "tsup"
+    },
+    "keywords": [
+        "cesium",
+        "3d",
+        "map",
+        "globe",
+        "utility",
+        "sunrise-ui"
+    ],
+    "author": "Sunrise UI Team",
+    "license": "MIT",
+    "peerDependencies": {
+        "cesium": "^1.0.0"
+    },
+    "devDependencies": {
+        "typescript": "5.9.3",
+        "tsup": "8.5.1"
+    }
+}
