@@ -1,4 +1,4 @@
-import { Cartesian3, Cartographic, HeadingPitchRoll, Matrix4, Model, sampleTerrain, Transforms, Viewer, Math, Rectangle } from "cesium"
+import { Cartesian3, Cartographic, HeadingPitchRoll, Matrix4, Model, sampleTerrain, Transforms, Viewer, Math, Rectangle, Cartesian2, defined } from "cesium"
 import { calculateLocationType, findModelByIdType } from "./types"
 /**
  * @Date: 2024-02-27 11:30:59
@@ -70,4 +70,38 @@ export function flyTo(map: Viewer, position: Cartesian3 | Rectangle) {
             roll: 0.0
         }
     })
+}
+
+
+/**
+ * 计算屏幕坐标对应的经纬度
+ * @author 朝阳
+ * @param {Viewer} viewer - Cesium 地图查看器实例。
+ * @param {Cartesian2} position - 屏幕坐标
+ * @returns {{Lon: number, Lat: number}} - 经纬度
+ */
+export function getLonLat(viewer: Viewer, position: Cartesian2): { Lon: number; Lat: number } | null {
+    const ray = viewer.camera.getPickRay(position)!
+    const cartesian = viewer.scene.globe.pick(ray, viewer.scene)
+    if (defined(cartesian)) {
+        const cartographic = Cartographic.fromCartesian(cartesian)
+        const Lon = Math.toDegrees(cartographic.longitude)
+        const Lat = Math.toDegrees(cartographic.latitude)
+        return { Lon, Lat }
+    } else {
+        return null
+    }
+}
+
+/**
+ * 计算经纬度
+ * @author 朝阳
+ * @param {Cartesian3} cartesian - 笛卡尔坐标
+ * @returns {{Lon: number, Lat: number}} - 经纬度
+ */
+export function getLonLatByCartesian(cartesian: Cartesian3): { Lon: number; Lat: number } {
+    const cartographic = Cartographic.fromCartesian(cartesian)
+    const Lon = Math.toDegrees(cartographic.longitude)
+    const Lat = Math.toDegrees(cartographic.latitude)
+    return { Lon, Lat }
 }
